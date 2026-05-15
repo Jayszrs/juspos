@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Struk - SRPM202601135475</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; max-width: 320px; margin: 0 auto; padding: 20px; background: #fff; color: #000; }
+    .header { text-align: center; margin-bottom: 12px; }
+    .store-name { font-size: 18px; font-weight: bold; }
+    .divider { border-top: 1px dashed #000; margin: 12px 0; }
+    .info-row { display: flex; justify-content: space-between; margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+    .total-row { font-weight: bold; font-size: 14px; }
+    .footer { text-align: center; margin-top: 12px; font-size: 10px; color: #666; }
+    .reprint-badge { background: #ef4444; color: white; padding: 4px 12px; font-weight: bold; display: inline-block; margin-bottom: 8px; }
+    @media print { body { padding: 0; } .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="reprint-badge">*** REPRINT ***</div>
+    <div class="store-name">Toko Jus Segar</div>
+    <div>Jl. Contoh No. 123, Jakarta</div>
+    <div>Tel: 021-12345678</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="info-row"><span>No. Order:</span><span>SRPM202601135475</span></div>
+  <div class="info-row"><span>Tanggal:</span><span>13 Jan 2026, 15:32</span></div>
+  <div class="info-row"><span>Kasir:</span><span>Leader Demo</span></div>
+  <div class="info-row"><span>Tipe:</span><span>DINE</span></div>
+
+  <div class="divider"></div>
+
+  <table><tbody>
+    <tr><td style="padding:4px 0;">5x Toping madu 30ml</td><td style="text-align:right;padding:4px 0;">Rp 25.000</td></tr>
+
+  </tbody></table>
+
+  <div class="divider"></div>
+
+  <table>
+    <tbody>
+      <tr><td style="padding:2px 0;">Subtotal</td><td style="text-align:right;padding:2px 0;">Rp 25.000</td></tr><tr><td style="padding:2px 0;">PPN 11%</td><td style="text-align:right;padding:2px 0;">Rp 2.750</td></tr><tr><td style="padding:2px 0;">Pembulatan</td><td style="text-align:right;padding:2px 0;">Rp 50</td></tr>    </tbody>
+  </table>
+
+  <div class="divider"></div>
+
+  <table>
+    <tbody>
+      <tr class="total-row"><td style="padding:4px 0;">GRAND TOTAL</td><td style="text-align:right;padding:4px 0;">Rp 27.800</td></tr>
+      <tr><td style="padding:2px 0;">Bayar (CARD)</td><td style="text-align:right;padding:2px 0;">Rp 27.800</td></tr>
+    </tbody>
+  </table>
+
+  <div class="divider"></div>
+
+  <div class="footer">
+    <p>Terima kasih atas kunjungan Anda!</p>
+    <p style="margin-top:8px;font-size:9px;">Cooling pack dan penanganan suhu yang tepat wajib dilakukan untuk menjaga kualitas produk.</p>
+  </div>
+
+  <div class="no-print" style="margin-top:20px;text-align:center;">
+    <button onclick="window.print()" style="padding:10px 24px;font-size:14px;cursor:pointer;">Cetak Struk</button>
+  </div>
+</body>
+</html>

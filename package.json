@@ -1,0 +1,33 @@
+{
+  "name": "juspos",
+  "version": "1.0.0",
+  "description": "1. Import migrations/converted_mysql_schema.sql ke database juspos.\r 2. Import seed/seed_data.sql.\r 3. Sesuaikan includes/config.php DB creds dan BASE_URL.\r 4. Pastikan public/receipts writable (chmod 775).\r 5. Upload files ke server (public sebagai root web dir).\r 6. Buka http://localhost/juspos/public/index.php .\r 7. Register admin via POST /api/auth.php?action=register (gunakan tool seperti Postman) atau buat user manual di DB.",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./src/input.css -o ./public/assets/styles.css --minify",
+    "watch:css": "npx tailwindcss -i ./src/input.css -o ./public/assets/styles.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
+  },
+  "dependencies": {
+    "baseline-browser-mapping": "^2.9.14",
+    "browserslist": "^4.28.1",
+    "caniuse-lite": "^1.0.30001763",
+    "electron-to-chromium": "^1.5.267",
+    "escalade": "^3.2.0",
+    "fraction.js": "^5.3.4",
+    "nanoid": "^3.3.11",
+    "node-releases": "^2.0.27",
+    "picocolors": "^1.1.1",
+    "postcss-value-parser": "^4.2.0",
+    "source-map-js": "^1.2.1",
+    "update-browserslist-db": "^1.2.3"
+  }
+}

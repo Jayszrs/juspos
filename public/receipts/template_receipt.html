@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Struk - JusPoint</title>
+  <style>
+    body { font-family: monospace; width: 280px; margin:0; padding:0; }
+    .center { text-align:center; }
+    .logo { font-size: 18px; font-weight:700; margin-bottom:8px; }
+    .addr { font-size:12px; margin-bottom:6px; }
+    table { width:100%; border-collapse: collapse; font-size:12px; }
+    td,th { padding:4px 0; }
+    .tot { font-weight:700; font-size:14px; }
+    .small { font-size:10px; color:#666; }
+    .divider { border-top:1px dashed #000; margin:6px 0; }
+  </style>
+</head>
+<body>
+  <div class="center">
+    <div class="logo">JUSPOINT</div>
+    <div class="addr">Jl. Contoh No.1 • 0812-3456-7890</div>
+    <div class="small">Tgl: {{created_at}} • Order#: {{order_id}}</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <table>
+    <!-- Rows: item, qty x price, subtotal -->
+    {{items}}
+  </table>
+
+  <div class="divider"></div>
+
+  <table>
+    <tr><td>Subtotal</td><td style="text-align:right">{{subtotal}}</td></tr>
+    <tr><td>Diskon</td><td style="text-align:right">{{discount}}</td></tr>
+    <tr class="tot"><td>Total</td><td style="text-align:right">{{total}}</td></tr>
+    <tr><td>Bayar</td><td style="text-align:right">{{paid}}</td></tr>
+    <tr><td>Kembali</td><td style="text-align:right">{{change}}</td></tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <div class="center small">Terima kasih atas kunjungan Anda!<br>Follow kami @juspoint</div>
+</body>
+</html>
