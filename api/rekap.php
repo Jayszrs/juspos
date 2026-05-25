@@ -189,9 +189,10 @@ try {
                 }
                 if ($q !== '') {
                     // cari di order_no, id, member.name, users.name
+                    $idCast = db_is_pgsql() ? 'CAST(o.id AS TEXT)' : 'CAST(o.id AS CHAR)';
                     $where .= " AND (
                             (o.order_no IS NOT NULL AND o.order_no LIKE :q)
-                            OR CAST(o.id AS CHAR) LIKE :q
+                            OR {$idCast} LIKE :q
                             OR EXISTS (SELECT 1 FROM members mm WHERE mm.id = o.member_id AND mm.name LIKE :q)
                             OR EXISTS (SELECT 1 FROM users uu WHERE uu.id = o.user_id AND uu.name LIKE :q)
                           )";
@@ -232,7 +233,7 @@ try {
                     ) pm ON pm.order_id = o.id
                     WHERE {$where}
                     ORDER BY o.created_at DESC
-                    LIMIT :offset, :per_page";
+                    LIMIT :per_page OFFSET :offset";
 
                 $stmt = $pdo->prepare($sql);
                 // bind parameter dynamic

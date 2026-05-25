@@ -31,11 +31,11 @@ try {
     if (!isset($pdo) || !$pdo) respond(['success' => false, 'error' => 'Database connection missing'], 500);
 
     // detect useful columns dynamically (robust to schema differences)
-    $colEmail = (bool)$pdo->query("SHOW COLUMNS FROM users LIKE 'email'")->fetch();
-    $colPhone = (bool)$pdo->query("SHOW COLUMNS FROM users LIKE 'phone'")->fetch();
-    $colPasswordHash = (bool)$pdo->query("SHOW COLUMNS FROM users LIKE 'password_hash'")->fetch();
-    $colPassword = (bool)$pdo->query("SHOW COLUMNS FROM users LIKE 'password'")->fetch();
-    $colUpdatedAt = (bool)$pdo->query("SHOW COLUMNS FROM users LIKE 'updated_at'")->fetch();
+    $colEmail = db_column_exists($pdo, 'users', 'email');
+    $colPhone = db_column_exists($pdo, 'users', 'phone');
+    $colPasswordHash = db_column_exists($pdo, 'users', 'password_hash');
+    $colPassword = db_column_exists($pdo, 'users', 'password');
+    $colUpdatedAt = db_column_exists($pdo, 'users', 'updated_at');
 
     $method = $_SERVER['REQUEST_METHOD'];
 
@@ -166,7 +166,7 @@ try {
             $placeholders[] = ':ph';
             $params[':ph'] = $hash;
         } elseif ($colPassword) {
-            $fields[] = '`password`';
+            $fields[] = db_ident('password');
             $placeholders[] = ':pw';
             $params[':pw'] = $hash;
         }
@@ -195,7 +195,7 @@ try {
         $stmt = $pdo->prepare("INSERT INTO users ({$sqlFields}) VALUES ({$sqlPlaceholders})");
         $stmt->execute($params);
 
-        $newId = $pdo->lastInsertId();
+        $newId = db_last_insert_id($pdo, 'users');
         $select = 'id, username, name, role, created_at' . ($colUpdatedAt ? ', updated_at' : '');
         if ($colEmail) $select .= ', email';
         if ($colPhone) $select .= ', phone';
@@ -258,7 +258,7 @@ try {
         if (array_key_exists('password', $input) && ($input['password'] !== null) && $input['password'] !== '') {
             $hash = password_hash($input['password'], PASSWORD_DEFAULT);
             if ($colPasswordHash) { $fields[] = "password_hash = :ph"; $params[':ph'] = $hash; }
-            elseif ($colPassword) { $fields[] = "`password` = :pw"; $params[':pw'] = $hash; }
+            elseif ($colPassword) { $fields[] = db_ident('password') . " = :pw"; $params[':pw'] = $hash; }
         }
 
         if (count($fields) === 0) respond(['success' => false, 'error' => 'Nothing to update'], 400);

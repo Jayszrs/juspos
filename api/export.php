@@ -67,7 +67,7 @@ try {
 
     if ($type === 'promotions') {
         // conservative columns
-        $sql = "SELECT id, code, `type`, `value`, active, created_at FROM promotions ORDER BY id ASC";
+        $sql = "SELECT id, code, type, value, active, created_at FROM promotions ORDER BY id ASC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute();
 
@@ -99,16 +99,7 @@ try {
         }
 
         // Inspect schema to build safe query (avoid referencing missing columns)
-        $dbName = $pdo->query("SELECT DATABASE()")->fetchColumn();
-
-        // fetch columns in orders
-        $colStmt = $pdo->prepare("
-            SELECT COLUMN_NAME
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = 'orders'
-        ");
-        $colStmt->execute([':schema' => $dbName]);
-        $orderCols = $colStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        $orderCols = db_table_columns($pdo, 'orders');
 
         // utility to check column exists
         $has = function($c) use ($orderCols) { return in_array($c, $orderCols, true); };
@@ -131,25 +122,20 @@ try {
         $userIdCol = $has('user_id') ? 'user_id' : ( $has('cashier_id') ? 'cashier_id' : null );
 
         // check if order_items & menus exist for items_summary
-        $tableStmt = $pdo->prepare("
-            SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_SCHEMA = :schema AND TABLE_NAME IN ('order_items','menus')
-        ");
-        $tableStmt->execute([':schema' => $dbName]);
-        $tables = $tableStmt->fetchAll(PDO::FETCH_COLUMN, 0);
-        $hasOrderItems = in_array('order_items', $tables, true);
-        $hasMenus = in_array('menus', $tables, true);
+        $hasOrderItems = db_table_exists($pdo, 'order_items');
+        $hasMenus = db_table_exists($pdo, 'menus');
+        $hasUsers = db_table_exists($pdo, 'users');
 
         // Build SELECT - always include order_id (o.id)
         $selectParts = ["o.id AS order_id"];
 
-        if ($orderNoCol) $selectParts[] = "COALESCE(o.`$orderNoCol`,'') AS order_no";
+        if ($orderNoCol) $selectParts[] = "COALESCE(o." . db_ident($orderNoCol) . ",'') AS order_no";
         else $selectParts[] = "'' AS order_no";
 
-        if ($createdAtCol) $selectParts[] = "o.`$createdAtCol` AS created_at";
+        if ($createdAtCol) $selectParts[] = "o." . db_ident($createdAtCol) . " AS created_at";
         else $selectParts[] = "o.created_at AS created_at";
 
-        if ($userIdCol && in_array('users', $tables, true)) {
+        if ($userIdCol && $hasUsers) {
             $selectParts[] = "COALESCE(u.name, '') AS cashier";
         } else {
             // maybe there is a plain column like cashier_name
@@ -157,7 +143,11 @@ try {
             else $selectParts[] = "'' AS cashier";
         }
 
-        if ($memberCol) $selectParts[] = "COALESCE(o.`$memberCol`,'') AS member";
+        if ($memberCol && $memberCol === 'member_id' && db_table_exists($pdo, 'members')) {
+            $selectParts[] = "COALESCE(mem.name, '') AS member";
+        } elseif ($memberCol) {
+            $selectParts[] = "COALESCE(o." . db_ident($memberCol) . ",'') AS member";
+        }
         else $selectParts[] = "'' AS member";
 
         if ($has('visit_type')) $selectParts[] = "COALESCE(o.visit_type,'') AS visit_type";
@@ -170,17 +160,24 @@ try {
         }
 
         if ($hasOrderItems && $hasMenus) {
-            // safe GROUP_CONCAT subquery (may produce long text)
-            $selectParts[] = "(SELECT GROUP_CONCAT(CONCAT(IFNULL(mi.name,''), ' x', IFNULL(oi.qty,0)) SEPARATOR ' | ')
-                                  FROM order_items oi
-                                  LEFT JOIN menus mi ON mi.id = oi.menu_id
-                                  WHERE oi.order_id = o.id
-                               ) AS items_summary";
+            if (db_is_pgsql()) {
+                $selectParts[] = "(SELECT string_agg(COALESCE(mi.name,'') || ' x' || COALESCE(oi.qty,0)::text, ' | ')
+                                      FROM order_items oi
+                                      LEFT JOIN menus mi ON mi.id = oi.menu_id
+                                      WHERE oi.order_id = o.id
+                                   ) AS items_summary";
+            } else {
+                $selectParts[] = "(SELECT GROUP_CONCAT(CONCAT(IFNULL(mi.name,''), ' x', IFNULL(oi.qty,0)) SEPARATOR ' | ')
+                                      FROM order_items oi
+                                      LEFT JOIN menus mi ON mi.id = oi.menu_id
+                                      WHERE oi.order_id = o.id
+                                   ) AS items_summary";
+            }
         } else {
             $selectParts[] = "'' AS items_summary";
         }
 
-        if ($totalCol) $selectParts[] = "COALESCE(o.`$totalCol`,0) AS total";
+        if ($totalCol) $selectParts[] = "COALESCE(o." . db_ident($totalCol) . ",0) AS total";
         else $selectParts[] = "COALESCE(o.total, 0) AS total";
 
         if ($has('payment_method')) $selectParts[] = "COALESCE(o.payment_method,'') AS payment_method";
@@ -189,15 +186,18 @@ try {
         // start building FROM / JOIN
         $from = "FROM orders o";
         $joins = [];
-        if ($userIdCol && in_array('users', $tables, true)) {
+        if ($userIdCol && $hasUsers) {
             // determine user id column in orders: user_id or cashier_id etc
-            $joins[] = "LEFT JOIN users u ON u.id = o.`$userIdCol`";
+            $joins[] = "LEFT JOIN users u ON u.id = o." . db_ident($userIdCol);
+        }
+        if ($memberCol === 'member_id' && db_table_exists($pdo, 'members')) {
+            $joins[] = "LEFT JOIN members mem ON mem.id = o.member_id";
         }
 
         // assemble final query
         $sql = "SELECT " . implode(", ", $selectParts) . " $from " . (count($joins)? ' ' . implode(' ', $joins) : '') .
-               " WHERE DATE(" . ( $createdAtCol ? "o.`$createdAtCol`" : "o.created_at" ) . ") BETWEEN :start AND :end ORDER BY " .
-               ( $createdAtCol ? "o.`$createdAtCol` ASC" : "o.created_at ASC" );
+               " WHERE DATE(" . ( $createdAtCol ? "o." . db_ident($createdAtCol) : "o.created_at" ) . ") BETWEEN :start AND :end ORDER BY " .
+               ( $createdAtCol ? "o." . db_ident($createdAtCol) . " ASC" : "o.created_at ASC" );
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':start' => $start, ':end' => $end]);

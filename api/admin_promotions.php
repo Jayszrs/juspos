@@ -21,9 +21,7 @@ function respond($data, $code = 200) {
 
 // cek apakah promotions table punya kolom updated_at
 try {
-    $hasUpdated = false;
-    $colStmt = $pdo->query("SHOW COLUMNS FROM promotions LIKE 'updated_at'");
-    if ($colStmt && $colStmt->fetch()) $hasUpdated = true;
+    $hasUpdated = db_column_exists($pdo, 'promotions', 'updated_at');
 } catch (Exception $e) {
     // jika query SHOW COLUMNS gagal, anggap tidak ada
     $hasUpdated = false;
@@ -36,7 +34,7 @@ try {
         // jika minta single ?id=...
         if (isset($_GET['id']) && is_numeric($_GET['id'])) {
             $id = (int) $_GET['id'];
-            $select = 'id, code, `type`, `value`, active, created_at';
+            $select = 'id, code, type, value, active, created_at';
             if ($hasUpdated) $select .= ', updated_at';
             $stmt = $pdo->prepare("SELECT {$select} FROM promotions WHERE id = :id LIMIT 1");
             $stmt->execute([':id' => $id]);
@@ -54,7 +52,7 @@ try {
         $where = '';
         $params = [];
         if ($q !== '') {
-            $where = "WHERE code LIKE :q OR `type` LIKE :q";
+            $where = "WHERE code LIKE :q OR type LIKE :q";
             $params[':q'] = '%' . $q . '%';
         }
 
@@ -65,9 +63,9 @@ try {
         $total_rows = (int) $countStmt->fetchColumn();
 
         // select rows
-        $select = 'id, code, `type`, `value`, active, created_at';
+        $select = 'id, code, type, value, active, created_at';
         if ($hasUpdated) $select .= ', updated_at';
-        $sql = "SELECT {$select} FROM promotions $where ORDER BY id DESC LIMIT :off, :lim";
+        $sql = "SELECT {$select} FROM promotions $where ORDER BY id DESC LIMIT :lim OFFSET :off";
         $stmt = $pdo->prepare($sql);
         foreach ($params as $k => $v) $stmt->bindValue($k, $v, PDO::PARAM_STR);
         $stmt->bindValue(':off', (int)$offset, PDO::PARAM_INT);
@@ -97,11 +95,11 @@ try {
 
         if ($code === '' || $type === '') respond(['success' => false, 'error' => 'Fields code and type are required'], 400);
 
-        $stmt = $pdo->prepare("INSERT INTO promotions (code, `type`, `value`, active, created_at) VALUES (:code, :type, :value, :active, NOW())");
+        $stmt = $pdo->prepare("INSERT INTO promotions (code, type, value, active, created_at) VALUES (:code, :type, :value, :active, NOW())");
         $stmt->execute([':code'=>$code, ':type'=>$type, ':value'=>$value, ':active'=>$active ? 1 : 0]);
-        $id = $pdo->lastInsertId();
+        $id = db_last_insert_id($pdo, 'promotions');
 
-        $select = 'id, code, `type`, `value`, active, created_at';
+        $select = 'id, code, type, value, active, created_at';
         if ($hasUpdated) $select .= ', updated_at';
         $r = $pdo->prepare("SELECT {$select} FROM promotions WHERE id = :id LIMIT 1");
         $r->execute([':id' => $id]);
@@ -116,8 +114,8 @@ try {
         $fields = [];
         $params = [':id' => $id];
         if (array_key_exists('code', $payload)) { $fields[] = "code = :code"; $params[':code'] = trim($payload['code']); }
-        if (array_key_exists('type', $payload)) { $fields[] = "`type` = :type"; $params[':type'] = trim($payload['type']); }
-        if (array_key_exists('value', $payload)) { $fields[] = "`value` = :value"; $params[':value'] = floatval($payload['value']); }
+        if (array_key_exists('type', $payload)) { $fields[] = "type = :type"; $params[':type'] = trim($payload['type']); }
+        if (array_key_exists('value', $payload)) { $fields[] = "value = :value"; $params[':value'] = floatval($payload['value']); }
         if (array_key_exists('active', $payload)) { $fields[] = "active = :active"; $params[':active'] = (int)$payload['active'] ? 1 : 0; }
 
         if (count($fields) === 0) respond(['success' => false, 'error' => 'Tidak ada field untuk diupdate'], 400);
@@ -131,7 +129,7 @@ try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        $select = 'id, code, `type`, `value`, active, created_at';
+        $select = 'id, code, type, value, active, created_at';
         if ($hasUpdated) $select .= ', updated_at';
         $r = $pdo->prepare("SELECT {$select} FROM promotions WHERE id = :id LIMIT 1");
         $r->execute([':id' => $id]);

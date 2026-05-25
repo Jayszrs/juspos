@@ -100,7 +100,7 @@ try {
             ':available' => $stock > 0 ? 1 : 0,
             ':description' => $description
         ]);
-        $newId = (int)$pdo->lastInsertId();
+        $newId = (int)db_last_insert_id($pdo, 'menus');
         echo json_encode(['success' => true, 'menu_id' => $newId]);
         exit;
     }

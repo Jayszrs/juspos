@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $code = 'M' . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
         $stmt = $pdo->prepare("INSERT INTO members (code, name, phone, points) VALUES (:code, :name, :phone, 0)");
         $stmt->execute([':code' => $code, ':name' => $name, ':phone' => $phone]);
-        echo json_encode(['success' => true, 'member_id' => $pdo->lastInsertId()]);
+        echo json_encode(['success' => true, 'member_id' => db_last_insert_id($pdo, 'members')]);
         exit;
     } catch (Exception $e) {
         http_response_code(500);

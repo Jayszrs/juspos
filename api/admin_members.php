@@ -22,11 +22,10 @@ if (empty($_SESSION['user_id'])) {
 
 try {
     // Discover available columns from table (safer than brittle manual assumption)
-    $colsStmt = $pdo->query("DESCRIBE members");
-    $columns = $colsStmt->fetchAll(PDO::FETCH_COLUMN, 0); // array of field names
+    $columns = db_table_columns($pdo, 'members');
 
     // define canonical field order to present
-    $preferred = ['id','code','name','phone','point','created_at','updated_at'];
+    $preferred = ['id','code','name','phone','points','created_at','updated_at'];
     $available = [];
     foreach ($preferred as $c) {
         if (in_array($c, $columns, true)) $available[] = $c;
@@ -34,7 +33,7 @@ try {
     // fallback: if none of preferred found, use all discovered columns
     if (empty($available)) $available = $columns;
 
-    $colsSql = implode(', ', array_map(function($c){ return "`$c`"; }, $available));
+    $colsSql = implode(', ', array_map('db_ident', $available));
 
     $method = $_SERVER['REQUEST_METHOD'];
 
@@ -64,7 +63,7 @@ try {
             if (!empty($searchCols)) {
                 $parts = [];
                 foreach ($searchCols as $i => $c) {
-                    $parts[] = "`$c` LIKE :q";
+                    $parts[] = db_ident($c) . " LIKE :q";
                 }
                 $where = '(' . implode(' OR ', $parts) . ')';
                 $params[':q'] = "%$q%";
@@ -111,8 +110,7 @@ try {
         $code = isset($input['code']) ? trim($input['code']) : null;
         $name = isset($input['name']) ? trim($input['name']) : '';
         $phone = isset($input['phone']) ? trim($input['phone']) : null;
-        // optional point column
-        $point = in_array('point', $columns, true) ? (isset($input['point']) ? intval($input['point']) : 0) : null;
+        $points = in_array('points', $columns, true) ? intval($input['points'] ?? $input['point'] ?? 0) : null;
 
         if ($name === '') send(['success'=>false,'error'=>'Field name required'], 400);
 
@@ -124,7 +122,7 @@ try {
         if (in_array('code', $columns, true)) { $insCols[] = 'code'; $insVals[] = ':code'; $params[':code'] = $code ?: null; }
         if (in_array('name', $columns, true)) { $insCols[] = 'name'; $insVals[] = ':name'; $params[':name'] = $name; }
         if (in_array('phone', $columns, true)) { $insCols[] = 'phone'; $insVals[] = ':phone'; $params[':phone'] = $phone ?: null; }
-        if (in_array('point', $columns, true)) { $insCols[] = 'point'; $insVals[] = ':point'; $params[':point'] = $point; }
+        if (in_array('points', $columns, true)) { $insCols[] = 'points'; $insVals[] = ':points'; $params[':points'] = $points; }
         if (in_array('created_at', $columns, true)) {
             // we'll set created_at via NOW(); no param
             $insCols[] = 'created_at';
@@ -137,7 +135,7 @@ try {
         $sql = "INSERT INTO members (" . implode(', ', $insCols) . ") VALUES (" . implode(', ', $insVals) . ")";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-        $newId = $pdo->lastInsertId();
+        $newId = db_last_insert_id($pdo, 'members');
 
         // return created row
         $stmt2 = $pdo->prepare("SELECT $colsSql FROM members WHERE id = :id LIMIT 1");
@@ -154,18 +152,22 @@ try {
         $fields = [];
         $params = [':id' => $id];
 
-        foreach (['code','name','phone','point'] as $f) {
+        foreach (['code','name','phone','points'] as $f) {
             if (array_key_exists($f, $input) && in_array($f, $columns, true)) {
-                $fields[] = "`$f` = :$f";
-                $params[":$f"] = ($f === 'point' ? intval($input[$f]) : trim($input[$f]));
+                $fields[] = db_ident($f) . " = :$f";
+                $params[":$f"] = ($f === 'points' ? intval($input[$f]) : trim($input[$f]));
             }
+        }
+        if (array_key_exists('point', $input) && in_array('points', $columns, true)) {
+            $fields[] = db_ident('points') . " = :points";
+            $params[':points'] = intval($input['point']);
         }
 
         if (empty($fields)) send(['success'=>false,'error'=>'Tidak ada field untuk diupdate'], 400);
 
         // updated_at if exists
         if (in_array('updated_at', $columns, true)) {
-            $fields[] = "`updated_at` = NOW()";
+            $fields[] = db_ident('updated_at') . " = NOW()";
         }
 
         $sql = "UPDATE members SET " . implode(', ', $fields) . " WHERE id = :id";

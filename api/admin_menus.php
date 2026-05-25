@@ -127,7 +127,7 @@ try {
             ':available' => $available,
             ':description' => $description
         ]);
-        $newId = $pdo->lastInsertId();
+        $newId = db_last_insert_id($pdo, 'menus');
         send(['success' => true, 'id' => $newId], 201);
     }
 

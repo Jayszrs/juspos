@@ -35,10 +35,7 @@ if (!is_array($items) || count($items) === 0) {
 
 try {
     // Check columns present in orders table to insert only existing fields
-    $dbName = $pdo->query("SELECT DATABASE()")->fetchColumn();
-    $colsStmt = $pdo->prepare("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = 'orders'");
-    $colsStmt->execute([':schema' => $dbName]);
-    $orderCols = $colsStmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    $orderCols = db_table_columns($pdo, 'orders');
 
     $hasCol = function($name) use ($orderCols) { return in_array($name, $orderCols, true); };
 
@@ -68,7 +65,7 @@ try {
     $discount = 0.0;
     $promo_id = null;
     if ($promo_code) {
-        $stmt = $pdo->prepare("SELECT id, code, `type`, `value`, active FROM promotions WHERE code = :code LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id, code, type, value, active FROM promotions WHERE code = :code LIMIT 1");
         $stmt->execute([':code' => $promo_code]);
         $p = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($p && intval($p['active']) === 1) {
@@ -131,7 +128,7 @@ try {
         $stmtIns->execute($params);
     }
 
-    $order_id = $pdo->lastInsertId();
+    $order_id = db_last_insert_id($pdo, 'orders');
 
     // If orders table has order_no column, update it now
     if ($hasCol('order_no')) {
@@ -141,9 +138,7 @@ try {
 
     // Insert order_items and decrement stock
     // ensure order_items table exists
-    $tblStmt = $pdo->prepare("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = 'order_items'");
-    $tblStmt->execute([':schema' => $dbName]);
-    $hasOrderItems = (bool) $tblStmt->fetchColumn();
+    $hasOrderItems = db_table_exists($pdo, 'order_items');
 
     if ($hasOrderItems) {
         $insItem = $pdo->prepare("INSERT INTO order_items (order_id, menu_id, qty, price) VALUES (:order_id, :menu_id, :qty, :price)");
@@ -162,9 +157,7 @@ try {
     }
 
     // Insert payment record if payment_method provided and payments table exists
-    $tblStmt2 = $pdo->prepare("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = 'payments'");
-    $tblStmt2->execute([':schema' => $dbName]);
-    $hasPayments = (bool) $tblStmt2->fetchColumn();
+    $hasPayments = db_table_exists($pdo, 'payments');
 
     if (!empty($payment_method) && $hasPayments) {
         $stmtPay = $pdo->prepare("INSERT INTO payments (order_id, method, amount, meta, created_at) VALUES (:order_id, :method, :amount, :meta, NOW())");
