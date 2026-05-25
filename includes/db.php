@@ -22,7 +22,7 @@ try {
           PDO::ATTR_EMULATE_PREPARES => DB_DRIVER === 'pgsql'
         ]
     );
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database connection failed', 'detail' => $e->getMessage()]);
     exit;
