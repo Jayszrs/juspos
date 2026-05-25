@@ -4,6 +4,7 @@
   "description": "1. Import migrations/converted_mysql_schema.sql ke database juspos.\r 2. Import seed/seed_data.sql.\r 3. Sesuaikan includes/config.php DB creds dan BASE_URL.\r 4. Pastikan public/receipts writable (chmod 775).\r 5. Upload files ke server (public sebagai root web dir).\r 6. Buka http://localhost/juspos/public/index.php .\r 7. Register admin via POST /api/auth.php?action=register (gunakan tool seperti Postman) atau buat user manual di DB.",
   "main": "index.js",
   "scripts": {
+    "dev": "C:\\xampp\\php\\php.exe -d session.save_path=storage/sessions -S 127.0.0.1:8000 api/index.php",
     "build:css": "npx tailwindcss -i ./src/input.css -o ./public/assets/styles.css --minify",
     "watch:css": "npx tailwindcss -i ./src/input.css -o ./public/assets/styles.css --watch"
   },
