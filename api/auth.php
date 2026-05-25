@@ -134,7 +134,7 @@ if ($action === 'logout') {
     if ($isAjax || $acceptsJson) {
         send(['success' => true]);
     }
-    header('Location: ../public/login.php');
+    header('Location: /login.php');
     exit;
 }
 

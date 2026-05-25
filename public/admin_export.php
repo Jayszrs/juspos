@@ -158,7 +158,7 @@ $displayName = htmlspecialchars($_SESSION['user_name'] ?? 'Admin', ENT_QUOTES, '
 
   <script>
     (function() {
-      const API_EXPORT = '../juspos/api/export.php';
+      const API_EXPORT = '/api/export.php';
 
       function setStatus(msg, isError = false) {
         const s = document.getElementById('status');
